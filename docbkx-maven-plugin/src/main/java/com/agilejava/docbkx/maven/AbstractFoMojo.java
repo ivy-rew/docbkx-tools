@@ -30,7 +30,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.net.MalformedURLException;
-import java.util.Enumeration;
 
 import javax.xml.transform.Result;
 import javax.xml.transform.Source;
@@ -52,6 +51,7 @@ import org.apache.fop.apps.FOUserAgent;
 import org.apache.fop.apps.Fop;
 import org.apache.fop.apps.FopFactory;
 import org.apache.fop.apps.MimeConstants;
+import org.apache.log4j.Appender;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
@@ -152,9 +152,14 @@ public abstract class AbstractFoMojo extends AbstractMojoBase {
       if (fopLogPattern == null){
         fopLogPattern = PatternLayout.TTCC_CONVERSION_PATTERN;
       }
-      rootLogger.addAppender(new ConsoleAppender(
-          new PatternLayout(fopLogPattern)));
-      }
+      ConsoleAppender console = new ConsoleAppender(new PatternLayout(fopLogPattern));
+      console.setName("fop.console");
+      rootLogger.addAppender(console);
+    
+    }
+    
+    ConsoleAppender console = (ConsoleAppender) rootLogger.getAppender("fop.console");
+    console.setLayout(new PatternLayout(fopLogPattern));
     
     configureFileLogger(rootLogger);
 
@@ -167,16 +172,14 @@ public abstract class AbstractFoMojo extends AbstractMojoBase {
 
   private void configureFileLogger(Logger rootLogger){
     if (StringUtils.isNotEmpty(fopLogFile)){
-      for(Enumeration appenders = rootLogger.getAllAppenders(); appenders.hasMoreElements();){
-        Object appenderObj = appenders.nextElement();
-        if (appenderObj instanceof FileAppender){
-          FileAppender appender = (FileAppender) appenderObj;
-          rootLogger.removeAppender(appender);
-        }
+      Appender oldFileAppender = rootLogger.getAppender("fop.file");
+      if (oldFileAppender != null){
+        rootLogger.removeAppender(oldFileAppender);
       }
       try{
         FileAppender appender = new FileAppender(
                 new PatternLayout(fopLogPattern), fopLogFile);
+        appender.setName("fop.file");
         rootLogger.addAppender(appender);
       } catch (IOException ex){
       }
