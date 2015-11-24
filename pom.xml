@@ -58,7 +58,7 @@
   <parent>
     <groupId>org.sonatype.oss</groupId>
     <artifactId>oss-parent</artifactId>
-    <version>7</version>
+    <version>9</version>
   </parent>
 
   <properties>
@@ -230,6 +230,11 @@
   </modules>
 
   <distributionManagement>
+  	<snapshotRepository>
+      <id>zugpronexus.snapshots</id>
+      <name>Internal Build Integration Repository</name>
+      <url>http://zugpronexus:8081/nexus/content/repositories/build-snapshots/</url>
+	</snapshotRepository>
     <site>
       <id>docbkx-tools-sourceforge</id>
       <name>Docbkx Tools Site</name>
