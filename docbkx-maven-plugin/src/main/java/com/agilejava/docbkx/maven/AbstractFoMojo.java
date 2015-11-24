@@ -29,8 +29,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.Reader;
-
 import java.net.MalformedURLException;
+import java.util.Enumeration;
 
 import javax.xml.transform.Result;
 import javax.xml.transform.Source;
@@ -43,28 +43,23 @@ import javax.xml.transform.stream.StreamSource;
 
 import org.antlr.stringtemplate.StringTemplate;
 import org.antlr.stringtemplate.StringTemplateGroup;
-
 import org.apache.avalon.framework.configuration.Configuration;
 import org.apache.avalon.framework.configuration.ConfigurationException;
 import org.apache.avalon.framework.configuration.DefaultConfigurationBuilder;
-
 import org.apache.commons.io.IOUtils;
-
-import org.apache.commons.logging.LogFactory;
 import org.apache.fop.apps.FOPException;
 import org.apache.fop.apps.FOUserAgent;
 import org.apache.fop.apps.Fop;
 import org.apache.fop.apps.FopFactory;
 import org.apache.fop.apps.MimeConstants;
 import org.apache.log4j.ConsoleAppender;
+import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-
 import org.apache.log4j.PatternLayout;
 import org.apache.maven.plugin.MojoExecutionException;
-
 import org.codehaus.plexus.util.FileUtils;
-
+import org.codehaus.plexus.util.StringUtils;
 import org.xml.sax.SAXException;
 
 /**
@@ -117,6 +112,20 @@ public abstract class AbstractFoMojo extends AbstractMojoBase {
    */
   String fopLogLevel = null;
 
+  /** 
+   * Configures the log pattern to use by fop.
+   * 
+   * @parameter default-value="%r [%t] %p %c %x - %m%n"
+   */
+  String fopLogPattern = null;
+  
+  /** 
+   * Configures the log file to use by fop.
+   * 
+   * @parameter
+   */
+  String fopLogFile = null;
+  
   private String currentFileExtension;
 
   /**
@@ -140,15 +149,38 @@ public abstract class AbstractFoMojo extends AbstractMojoBase {
     if (!rootLogger.getAllAppenders().hasMoreElements()) {
       // configure a default logger if there is no previous configuration
       rootLogger.setLevel(Level.WARN);
-      rootLogger.addAppender(new ConsoleAppender(
-          new PatternLayout(PatternLayout.TTCC_CONVERSION_PATTERN)));
+      if (fopLogPattern == null){
+        fopLogPattern = PatternLayout.TTCC_CONVERSION_PATTERN;
       }
+      rootLogger.addAppender(new ConsoleAppender(
+          new PatternLayout(fopLogPattern)));
+      }
+    
+    configureFileLogger(rootLogger);
 
     // then configure loggers for fop and xmlgraphics
     Logger fopLogger = rootLogger.getLoggerRepository().getLogger("org.apache.fop");
     fopLogger.setLevel(Level.toLevel(fopLogLevel));
     Logger xmlgraphicsLogger = rootLogger.getLoggerRepository().getLogger("org.apache.xmlgraphics");
     xmlgraphicsLogger.setLevel(Level.toLevel(fopLogLevel));
+  }
+
+  private void configureFileLogger(Logger rootLogger){
+    if (StringUtils.isNotEmpty(fopLogFile)){
+      for(Enumeration appenders = rootLogger.getAllAppenders(); appenders.hasMoreElements();){
+        Object appenderObj = appenders.nextElement();
+        if (appenderObj instanceof FileAppender){
+          FileAppender appender = (FileAppender) appenderObj;
+          rootLogger.removeAppender(appender);
+        }
+      }
+      try{
+        FileAppender appender = new FileAppender(
+                new PatternLayout(fopLogPattern), fopLogFile);
+        rootLogger.addAppender(appender);
+      } catch (IOException ex){
+      }
+    }
   }
 
   /**
